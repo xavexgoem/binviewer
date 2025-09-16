@@ -232,8 +232,7 @@ function setupThree(geometries) {
 				texture = new THREE.TextureLoader().load(url, function() {
 					console.log(`Texture loaded from file: ${textureFile.name} for material: ${texName}`);
 				});
-				// We flip V in UVs (1.0 - v), so disable the default vertical flip
-				texture.flipY = false;
+				texture.flipY = true;
 			}
 			
 			let threeMat;
