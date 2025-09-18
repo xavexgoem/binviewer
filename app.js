@@ -66,33 +66,52 @@ export async function handleZipInput(e) {
   }
 }
 
-// expects a zip file to have .bin in the root, and texture files in txt/ and txt16/
+// expects a zip file to have .bin in the root or obj directory, and texture files in txt/ and txt16/ after that
 export async function loadZipFile(zipFile) {
   try {
-    const JSZip = globalThis.JSZip; // provided by script tag in bin.html
+    const JSZip = globalThis.JSZip; 
     if (!JSZip) throw new Error('JSZip not available');
 
     const zip = new JSZip();
     const zipData = await zip.loadAsync(zipFile);
 
     let binFile = null;
-    for (let filename in zipData.files) {
-      const file = zipData.files[filename];
-      if (!file.dir && filename.endsWith('.bin') && !filename.includes('/')) {
-        binFile = await file.async('arraybuffer');
+    let basePath = '';
+
+    // Search for .bin file in root first
+    for (const filename in zipData.files) {
+      if (!zipData.files[filename].dir && filename.endsWith('.bin') && !filename.includes('/')) {
+        binFile = await zipData.files[filename].async('arraybuffer');
+        basePath = '';
         break;
       }
     }
 
+    // If not in root, search in 'obj/' directory
     if (!binFile) {
-      alert('No .bin file found in zip root directory');
+      for (const filename in zipData.files) {
+        if (!zipData.files[filename].dir && filename.startsWith('obj/') && filename.endsWith('.bin')) {
+          const pathParts = filename.split('/');
+          if (pathParts.length === 2) { // e.g., "obj/model.bin"
+            binFile = await zipData.files[filename].async('arraybuffer');
+            basePath = 'obj/';
+            break;
+          }
+        }
+      }
+    }
+
+    if (!binFile) {
+      console.log('No .bin file found in zip root or obj/ directory');
       return;
     }
 
     const textureFiles = {};
-    for (let filename in zipData.files) {
+    const textureDir1 = `${basePath}txt/`;
+    const textureDir2 = `${basePath}txt16/`;
+    for (const filename in zipData.files) {
       const file = zipData.files[filename];
-      if (!file.dir && (filename.startsWith('txt/') || filename.startsWith('txt16/'))) {
+      if (!file.dir && (filename.startsWith(textureDir1) || filename.startsWith(textureDir2))) {
         const blob = await file.async('blob');
         const name = filename.split('/').pop(); // Get just the filename
         textureFiles[name] = new File([blob], name);
@@ -242,7 +261,7 @@ function setupThree(geometriesPerObject) {
         continue;
       }
 
-      // handle replacer.gif
+      // handle replace#.gif
       else if (mat.type === MATERIAL_TYPE_REPLACER) {
         const threeMat = new THREE.MeshLambertMaterial({ color: 0xFF00FF, flatShading: false }); // TODO - differentiate between replace0, replace1, etc
         AppState.materials.push(threeMat);
