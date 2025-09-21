@@ -87,6 +87,8 @@
 	<input type="file" id="textureDirectoryInput" webkitdirectory directory multiple accept="image/*">
 	<label for="zipInput">Or upload zip file (bin in root, textures in txt/txt16/):</label>
 	<input type="file" id="zipInput" accept=".zip">
+	<label for="zipDirectoryInput">Or upload entire directory of zip files:</label>
+	<input type="file" id="zipDirectoryInput" webkitdirectory directory multiple accept=".zip">
 </div>
 
 <div class="main-flex">
@@ -103,12 +105,18 @@
 
 <script type="module">
   import * as App from './app.js';
+  import * as MultiModel from './multiModelViewer.js';
+
   document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('input')?.addEventListener('change', App.handleFileInput);
     document.getElementById('textureInput')?.addEventListener('change', App.handleTextureInput);
     document.getElementById('textureDirectoryInput')?.addEventListener('change', App.handleDirectoryInput);
     document.getElementById('zipInput')?.addEventListener('change', App.handleZipInput);
+    document.getElementById('zipDirectoryInput')?.addEventListener('change', MultiModel.handleZipDirectoryInput);
     window.addEventListener('resize', App.handleResize);
+
+    // Make App globally available for the multi-model module
+    window.App = App;
   });
   </script>
 </body>

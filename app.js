@@ -55,8 +55,14 @@ export function handleTextureInput(e) {
   loadTextures(e.target.files);
 }
 
-export function handleDirectoryInput(e) {
-  loadTextures(e.target.files);
+export async function loadModelWithTextures(model, textures) {
+  if (!model) return;
+
+  AppState.model = model;
+  AppState.selectedTextures = textures || {};
+  console.log('Loading model with textures:', model);
+  const geoms = toThree(model);
+  setupThree(geoms);
 }
 
 export async function handleZipInput(e) {
@@ -66,8 +72,11 @@ export async function handleZipInput(e) {
   }
 }
 
-// expects a zip file to have .bin in the root or obj directory, and texture files in txt/ and txt16/ after that
-export async function loadZipFile(zipFile) {
+// Loads a BIN + textures from a zip.
+// If desiredBinRelativePath is provided (e.g., "model.bin" or "obj/model.bin"), that BIN is used.
+// Otherwise, search in root first, then obj/.
+// Textures are expected in txt/ and txt16/ under the same base path as the BIN.
+export async function loadZipFile(zipFile, desiredBinRelativePath = null) {
   try {
     const JSZip = globalThis.JSZip; 
     if (!JSZip) throw new Error('JSZip not available');
@@ -78,12 +87,24 @@ export async function loadZipFile(zipFile) {
     let binFile = null;
     let basePath = '';
 
-    // Search for .bin file in root first
-    for (const filename in zipData.files) {
-      if (!zipData.files[filename].dir && filename.endsWith('.bin') && !filename.includes('/')) {
-        binFile = await zipData.files[filename].async('arraybuffer');
-        basePath = '';
-        break;
+    if (desiredBinRelativePath) {
+      const normalized = desiredBinRelativePath.replace(/^\/+/, '');
+      const entry = zipData.files[normalized];
+      if (entry && !entry.dir) {
+        binFile = await entry.async('arraybuffer');
+        const parts = normalized.split('/');
+        basePath = parts.length > 1 ? parts.slice(0, -1).join('/') + '/' : '';
+      }
+    }
+
+    // If still not found, search for .bin file in root first
+    if (!binFile) {
+      for (const filename in zipData.files) {
+        if (!zipData.files[filename].dir && filename.endsWith('.bin') && !filename.includes('/')) {
+          binFile = await zipData.files[filename].async('arraybuffer');
+          basePath = '';
+          break;
+        }
       }
     }
 
@@ -628,7 +649,7 @@ class Transform {
   center;         // vec3f
 }
 
-function read_bin(bin) {
+export function read_bin(bin) {
   const buffer = new Buffer(bin);
   const signature = buffer.u32();
   if (signature !== 0x444D474C) {
@@ -720,7 +741,7 @@ function read_bin(bin) {
     material.name = mbuffer.str(16);
     material.type = mbuffer.u8();
     material.id = mbuffer.i8();
-    
+
     // replace.gif material handling
     const rawName = material.name.trim();
     const lowerName = rawName.toLowerCase();
@@ -734,7 +755,7 @@ function read_bin(bin) {
       material.replacer = -1;
     }
 
-    
+
     if (material.type == MATERIAL_TYPE_COLOR) {
       material.blue = mbuffer.u8();
       material.green = mbuffer.u8();
