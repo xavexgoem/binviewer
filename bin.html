@@ -118,6 +118,28 @@
     // Make App globally available for the multi-model module
     window.App = App;
   });
+
+  // Load zip file from ?file= URL query parameters - simply fetch and pass zip blob to App.loadZipFile
+  window.addEventListener('load', () => {
+	const params = new URLSearchParams(window.location.search);
+	const fileUrl = params.get('file');
+	if (fileUrl) {
+		fetch(fileUrl)
+			.then(response => {
+				if (!response.ok) {
+					throw new Error(`Network response was not ok: ${response.statusText}`);
+				}
+				return response.blob();
+			})
+			.then(blob => {
+				const fakeFile = new File([blob], 'model.bin', { type: blob.type });
+				App.loadZipFile(blob);
+			})
+			.catch(error => {
+				console.error('There has been a problem with your fetch operation:', error);
+			});
+	}
+  });
   </script>
 </body>
 </html>
