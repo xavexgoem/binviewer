@@ -311,6 +311,7 @@ function setupThree(geometriesPerObject) {
                 URL.revokeObjectURL(url);
               }
             );
+            texture.flipY = true;
           } else {
             // Regular texture loader for non-DDS files
             if (!AppState.textureLoader) AppState.textureLoader = new THREE.TextureLoader();
@@ -939,6 +940,7 @@ function toThree(model) {
     const normals = [];
     const groups = [];
     let vertexCount = 0;
+    
     // Build an object-local transform matrix if transform data is present
     let sub_transform_matrix = null;
     if (sub.transform && sub.transform.type !== 0) {
@@ -965,8 +967,8 @@ function toThree(model) {
             positions.push(model.points[p_ix], model.points[p_ix + 1], model.points[p_ix + 2]);
             if (isTextured) {
               const uv_ix = poly.uvs[idx] * 2;
-              // Flip V axis: BIN UVs are top-left origin, WebGL is bottom-left
-              uvs.push(model.uvmaps[uv_ix], 1.0 - model.uvmaps[uv_ix + 1]);
+              // Don't flip here - let texture.flipY handle it
+              uvs.push(model.uvmaps[uv_ix], model.uvmaps[uv_ix + 1]);
             } else {
               // Dummy UVs for non-textured faces
               uvs.push(0, 0);
@@ -985,9 +987,11 @@ function toThree(model) {
           positions.push(model.points[p_ix], model.points[p_ix + 1], model.points[p_ix + 2]);
           if (isTextured) {
             const uv_ix = poly.uvs[idx] * 2;
-            // Flip V axis: BIN UVs are top-left origin, WebGL is bottom-left
-            uvs.push(model.uvmaps[uv_ix], 1.0 - model.uvmaps[uv_ix + 1]);
+            const u = model.uvmaps[uv_ix];
+            const v = model.uvmaps[uv_ix + 1];
+            uvs.push(u, v);
           } else {
+            // Dummy UVs for non-textured faces
             uvs.push(0, 0);
           }
           const l_ix = poly.lights[idx];
