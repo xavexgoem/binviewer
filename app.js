@@ -3,7 +3,7 @@
 
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-
+import { DDSLoader } from 'three/addons/loaders/DDSLoader.js';
 
 export const AppState = {
   model: null,
@@ -293,22 +293,42 @@ function setupThree(geometriesPerObject) {
       else {
         const textureFile = findTextureFile(texName);
         if (textureFile) {
-          if (!AppState.textureLoader) AppState.textureLoader = new THREE.TextureLoader();
           const url = URL.createObjectURL(textureFile);
-          texture = AppState.textureLoader.load(
-            url,
-            function onLoad() {
-            console.log(`Texture loaded from file: ${textureFile.name} for material: ${texName}`);
-            URL.revokeObjectURL(url);
-          },
-          undefined,
-          function onError() {
-            URL.revokeObjectURL(url);
+          const filename = textureFile.name ? textureFile.name.toLowerCase() : '';
+          
+          // Check if this is a DDS file
+          if (filename.endsWith('.dds')) {
+            const ddsLoader = new DDSLoader();
+            texture = ddsLoader.load(
+              url,
+              function onLoad() {
+                console.log(`DDS texture loaded from file: ${textureFile.name} for material: ${texName}`);
+                URL.revokeObjectURL(url);
+              },
+              undefined,
+              function onError() {
+                console.error(`Failed to load DDS texture: ${textureFile.name}`);
+                URL.revokeObjectURL(url);
+              }
+            );
+          } else {
+            // Regular texture loader for non-DDS files
+            if (!AppState.textureLoader) AppState.textureLoader = new THREE.TextureLoader();
+            texture = AppState.textureLoader.load(
+              url,
+              function onLoad() {
+                console.log(`Texture loaded from file: ${textureFile.name} for material: ${texName}`);
+                URL.revokeObjectURL(url);
+              },
+              undefined,
+              function onError() {
+                URL.revokeObjectURL(url);
+              }
+            );
+            texture.flipY = true;
           }
-        );
-        texture.flipY = true;
+        }
       }
-    }
 
       let threeMat;
       if (texture) {
