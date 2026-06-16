@@ -20,41 +20,26 @@
 <script src="https://unpkg.com/jszip@3.10.1/dist/jszip.min.js"></script>
 
 <style>
+	html, body {
+		height: 100%;
+		margin: 0;
+		padding: 0;
+	}
+	body {
+		background-color: #404040;
+	}
 	* { 
 		font-family: monospace; 
 		font-weight: bold; 
 		color: #111; 
+		margin: 0; padding: 0;
 	}
 	.main-flex { 
 		display: flex; 
 		flex-direction: row; 
 		align-items: flex-start; 
 		justify-content: space-between;
-	}
-	.contain { 
-		width: 33%; 
-		min-width: 340px; 
-		max-width: 33%;
-	}
-	table { 
-		width: 100%; 
-		min-width: 340px; 
-		border-collapse: collapse; 
-	}
-	th { 
-		background-color: #444; 
-		color: #fff; 
-		font-size: 110%; 
-	}
-	td { 
-		margin: 0; 
-		padding: 0; 
-	}
-	tr:nth-child(odd) { 
-		background-color: #eee; 
-	}
-	.sep { 
-		border-bottom: 2px solid #999;
+		height: 100vh;
 	}
 	.viewer { 
 		display: flex;
@@ -62,64 +47,144 @@
 		flex-grow: 1;
 		min-width: 340px;
 		align-items: stretch;
+		position: relative;
+		height: 100vh;
 	}
-
 	#viewer {
-		flex-grow: 2;
-		min-height: 480px; 
 		display: flex;
 		justify-content: center;
 		align-items: center;
+		position: absolute;
+		top: 0;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		width: 100%;
+		height: 100vh;
 	}
-	#viewer-control { 
-		text-align: center; 
-		width: 33%;
+	#file-controls-overlay {
+		position: absolute;
+		top: 10px;
+		left: 10px;
+		background: #eee;
+		padding: 10px;
+		/* border: 1px solid #333; */
+		z-index: 10;
+	}
+
+	#file-selector input {
+		background-color: #eee;
+	}
+
+	#file-controls-overlay label {
+		display: block;
+		margin-bottom: 5px;
+	}
+	#file-controls-overlay input[type="file"] {
+		margin-bottom: 10px;
+	}
+	#model-selector {
+		border: 1px solid #999;
+		height: 800px;
+		overflow-y: auto;
+	}
+
+	#model-selector div:nth-child(odd) {
+		background-color: #ddd;
+	}
+
+	#model-selector div {
+		cursor: pointer;
+	}
+
+	#model-selector div:hover {
+		background-color: #aaf;
+	}
+
+	.hoverable:hover {
+		background-color: #aaaaff;
+	}
+
+	#viewer-control {
+		margin-top: 10px;
+		z-index: 10;
+	}
+
+	#statistics {
+		position: absolute;
+		color: white;
+		min-width: 100px;
+		min-height: 100px;
+		right: 10px;
+		top: 10px;
+		z-index: 10;
+	}
+	#statistics table td {
+		color: white;
+	}
+	#statistics table td:nth-child(even) {
+		text-align: right;
 	}
 </style>
 </head>
 <body>
-<div>
-	<label for="binInput">Select .bin file:</label>
-	<input type="file" id="input" accept=".bin">
-	<label for="textureInput">Select texture images (pcx not supported):</label>
-	<input type="file" id="textureInput" multiple accept="image/*">
-	<label for="textureDirectoryInput">Or upload entire texture directory:</label>
-	<input type="file" id="textureDirectoryInput" webkitdirectory directory multiple accept="image/*">
-	<label for="zipInput">Or upload zip file (bin in root, textures in txt/txt16/):</label>
-	<input type="file" id="zipInput" accept=".zip">
-	<label for="zipDirectoryInput">Or upload entire directory of zip files:</label>
-	<input type="file" id="zipDirectoryInput" webkitdirectory directory multiple accept=".zip">
-</div>
-
 <div class="main-flex">
 	<div class="viewer">
-		<div style="text-align:center; margin-top:8px;" id="viewer"></div>
-		<div id="viewer-control" style="text-align: left;">
-			<label><input type="checkbox" id="toggle-bbox" checked> Show bounding box</label><br>
-			<label><input type="checkbox" id="toggle-vhots" checked> Show vhots</label>
+		<div id="viewer"></div>
+		<div id="file-controls-overlay">
+			<label>Select files (.bin, textures, .zip):</label>
+			<input type="file" id="fileInput" multiple accept=".bin,.jpg,.jpeg,.png,.gif,.dds,.webp,.zip,.crf">
+			
+			<div id="open-files-header" style="text-align: center; font-size: 12pt;">Models</div>
+			<div id="model-selector" style="font-size: 12pt;"></div>
+			<div id="viewer-control">
+				<label><input type="checkbox" id="toggle-bbox"> Show bounding box</label>
+				<label><input type="checkbox" id="toggle-vhots" checked> Show vhots</label>
+			</div>
+		</div>
+		<div id="statistics">
+			<div id="statistics-header" style="text-align: center; background-color: #eee;">
+				Statistics
+			</div>
+			<table id="header-stats">
+				<tr><td>Name</td><td id="s-name"></td></tr>
+				<tr><td>Version</td><td id="s-version"></td></tr>
+				<tr><td>Height</td><td id="s-height"></td></tr>
+				<tr><td>Width</td><td id="s-width"></td></tr>
+				<tr><td>Length</td><td id="s-length"></td></tr>
+				<tr><td># Subobjs</td><td id="s-subobjs"></td></tr>
+				<tr><td># Polys</td><td id="s-polys"></td></tr>
+				<tr><td># Materials</td><td id="s-materials"></td></tr>
+				<tr><td># Vhots</td><td id="s-vhots"></td></tr>
+			</table>
+			<div style="text-align: center; background-color: #eee;">
+				Subobjects
+			</div>
+			<table id="subobj-stats">
+			</table>
+			<div style="text-align: center; background-color: #eee;">
+				Materials
+			</div>
+			<div id="material-stats">
+
+			</div>
 		</div>
 	</div>
-</div>
 </div>
 
 
 <script type="module">
   import * as App from './app.js';
-  import * as MultiModel from './multiModelViewer.js';
 
   document.addEventListener('DOMContentLoaded', () => {
-    document.getElementById('input')?.addEventListener('change', App.handleFileInput);
-    document.getElementById('textureInput')?.addEventListener('change', App.handleTextureInput);
-    document.getElementById('textureDirectoryInput')?.addEventListener('change', App.handleDirectoryInput);
-    document.getElementById('zipInput')?.addEventListener('change', App.handleZipInput);
-    document.getElementById('zipDirectoryInput')?.addEventListener('change', MultiModel.handleZipDirectoryInput);
+    document.getElementById('fileInput')?.addEventListener('change', App.handleMultipleFileInput);
     window.addEventListener('resize', App.handleResize);
 
-    // Make App globally available for the multi-model module
+    // Make App globally available
     window.App = App;
   });
 
-  // Load zip file from ?file= URL query parameters - simply fetch and pass zip blob to App.loadZipFile
+  // Load zip file from ?file= URL query parameters
   window.addEventListener('load', () => {
 	const params = new URLSearchParams(window.location.search);
 	const fileUrl = params.get('file');
@@ -132,11 +197,10 @@
 				return response.blob();
 			})
 			.then(blob => {
-				const fakeFile = new File([blob], 'model.bin', { type: blob.type });
 				App.loadZipFile(blob);
 			})
 			.catch(error => {
-				console.error('There has been a problem with your fetch operation:', error);
+				console.error('Error loading zip file:', error);
 			});
 	}
   });

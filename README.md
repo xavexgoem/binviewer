@@ -1,5 +1,15 @@
-You'll probably want to start by extracting res/obj.crf somewhere to get the .bin and both txt/ and txt/16 directories. Open bin.html locally, and follow the instructions at the top of the page. 
+### Todo
 
-This ought to handle all .bins from any FM or object repository, not just the vanilla objects.
+* Auto-select top item when loading
+* handle GET queries
+* Weird material assignments goin on (I think v3 only?)
+* Toggle to show joints
+* Proper replace0..4 textures
+* Faster gif -> png (not sure where slowdown is, but my guess is writing into the canvas?)
+* Show color materials
+* Wireframe
 
-Things this doesn't do yet: 1. Edit anything, 2. Handle replace0.gif materials, 3. Handle any RGB materials
+### Done
+* Transparent textures
+* Switch between multiple uploaded bins
+* Fix bbox and vhot settings not carrying through on reload
